@@ -35,7 +35,7 @@ El navegador no guarda la nómina en `localStorage`. La información queda centr
 3. Reemplazar `REEMPLAZAR_CON_TU_EMAIL` por el correo que usará el primer administrador.
 4. Ejecutar el script completo una sola vez.
 
-El script crea las tablas, carga los 52 centros definidos para DMO, activa RLS y agrega el primer administrador.
+El script crea las tablas, activa RLS y agrega el primer administrador. El catálogo real de centros no se publica en GitHub: se carga después desde la pantalla autenticada **Centros**.
 
 ### 2. Autorizar la dirección web
 
@@ -69,10 +69,11 @@ Ingresar con el mismo correo configurado como administrador en `setup.sql`. Supa
 ## Carga inicial y mantenimiento
 
 1. Descargar la plantilla desde la pantalla Nómina.
-2. Completar `Responsables`: una fila por responsable y su correo.
-3. Completar `Nomina`: legajo, nombre, responsable principal, fecha de alta y fecha de baja opcional.
-4. Importar el archivo una sola vez.
-5. Después de esa carga, RRHH mantiene altas, bajas y cambios individualmente.
+2. Importar desde **Centros** el Excel vigente de DMO. La hoja debe contener Código, Unidad, Centro y Tipo (Costo o Beneficio).
+3. Completar `Responsables`: una fila por responsable y su correo.
+4. Completar `Nomina`: legajo, nombre, responsable principal, fecha de alta y fecha de baja opcional.
+5. Importar la nómina una sola vez.
+6. Después de esa carga, RRHH mantiene altas, bajas y cambios individualmente.
 
 La plantilla incluida contiene personas ficticias para probar. El administrador puede usar **Vaciar datos de prueba** y luego importar los datos reales. Esta acción no borra los centros ni los accesos de RRHH y administración.
 
