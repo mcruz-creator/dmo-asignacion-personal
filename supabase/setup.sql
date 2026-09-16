@@ -372,6 +372,94 @@ grant select,insert,update,delete on public.responsibles,public.app_users,public
   public.monthly_validations,public.hr_validations,public.audit_events to authenticated;
 grant usage,select on sequence public.audit_events_id_seq to authenticated;
 
+-- Acceso con correo y contraseña. No se envían correos: administradores y RRHH
+-- asignan una contraseña inicial y cada usuario la reemplaza en su primer ingreso.
+alter table public.app_users add column if not exists must_change_password boolean not null default false;
+alter table public.app_users add column if not exists password_set_at timestamptz;
+
+-- Uso interno: crea la cuenta de Supabase Auth o actualiza su contraseña.
+create or replace function public.write_auth_password(p_email text, p_password text, p_sign_out boolean)
+returns void language plpgsql security definer set search_path=public, extensions
+as $$
+declare uid uuid; addr text := lower(trim(p_email));
+begin
+  if length(coalesce(p_password,''))<8 then
+    raise exception 'La contraseña debe tener al menos 8 caracteres.';
+  end if;
+  select id into uid from auth.users where lower(email)=addr limit 1;
+  if uid is null then
+    uid := gen_random_uuid();
+    insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,
+      raw_app_meta_data,raw_user_meta_data,created_at,updated_at,
+      confirmation_token,recovery_token,email_change_token_new,email_change,
+      email_change_token_current,phone_change,phone_change_token,reauthentication_token)
+    values('00000000-0000-0000-0000-000000000000',uid,'authenticated','authenticated',addr,
+      crypt(p_password,gen_salt('bf')),now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,now(),now(),'','','','','','','','');
+    insert into auth.identities(id,user_id,provider_id,provider,identity_data,last_sign_in_at,created_at,updated_at)
+    values(gen_random_uuid(),uid,uid::text,'email',
+      jsonb_build_object('sub',uid::text,'email',addr,'email_verified',true),now(),now(),now());
+  else
+    update auth.users set encrypted_password=crypt(p_password,gen_salt('bf')),
+      email_confirmed_at=coalesce(email_confirmed_at,now()),updated_at=now()
+    where id=uid;
+    if p_sign_out then
+      delete from auth.sessions where user_id=uid;
+    end if;
+  end if;
+  update public.app_users set password_set_at=now() where email=addr;
+end $$;
+revoke all on function public.write_auth_password(text,text,boolean) from public, anon, authenticated;
+
+-- Administradores y RRHH asignan contraseñas iniciales. RRHH no puede tocar administradores.
+create or replace function public.set_user_password(target_email text, new_password text)
+returns void language plpgsql security definer set search_path=public
+as $$
+declare caller text := public.current_role(); target public.app_users; own boolean;
+begin
+  if coalesce(caller,'') not in ('administrador','rrhh') then
+    raise exception 'No tenés permiso para asignar contraseñas.';
+  end if;
+  select * into target from public.app_users where email=lower(trim(target_email));
+  if not found then
+    raise exception 'Ese correo no está habilitado en la aplicación.';
+  end if;
+  if caller='rrhh' and target.role='administrador' then
+    raise exception 'RRHH no puede cambiar la contraseña de un administrador.';
+  end if;
+  own := target.email=public.current_email();
+  perform public.write_auth_password(target.email,new_password,not own);
+  update public.app_users set must_change_password=not own where email=target.email;
+  insert into public.audit_events(actor_email,event_type,description)
+  values(public.current_email(),'access','Contraseña asignada a '||target.email);
+end $$;
+revoke all on function public.set_user_password(text,text) from public, anon;
+grant execute on function public.set_user_password(text,text) to authenticated;
+
+-- Cada usuario cambia su propia contraseña. En el primer ingreso no se pide la actual.
+create or replace function public.change_my_password(current_password text, new_password text)
+returns void language plpgsql security definer set search_path=public, extensions
+as $$
+declare u public.app_users; hash text;
+begin
+  select * into u from public.app_users where email=public.current_email() and active;
+  if not found then
+    raise exception 'Tu usuario no está habilitado.';
+  end if;
+  select encrypted_password into hash from auth.users where id=auth.uid();
+  if not u.must_change_password and coalesce(hash,'')<>''
+     and hash<>crypt(coalesce(current_password,''),hash) then
+    raise exception 'La contraseña actual no es correcta.';
+  end if;
+  perform public.write_auth_password(u.email,new_password,false);
+  update public.app_users set must_change_password=false where email=u.email;
+end $$;
+revoke all on function public.change_my_password(text,text) from public, anon;
+grant execute on function public.change_my_password(text,text) to authenticated;
+
+-- Quien todavía no tiene contraseña la elige al entrar (por ejemplo, quien ingresó con enlace).
+update public.app_users set must_change_password=true where password_set_at is null;
+
 -- El catálogo de centros no se publica en el repositorio. Se importa desde la
 -- pantalla Centros una vez autenticado y queda almacenado únicamente en Supabase.
 

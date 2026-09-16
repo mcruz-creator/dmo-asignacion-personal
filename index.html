@@ -14,11 +14,14 @@
     <form id="loginForm" class="login-card">
       <div class="login-brand">DMO</div>
       <h1>Asignación de personal</h1>
-      <p>Ingresá con el correo autorizado para recibir un enlace de acceso.</p>
+      <p>Ingresá con tu correo y contraseña. Si todavía no tenés contraseña, pedísela a RRHH o al administrador.</p>
       <label class="field">Correo electrónico
         <input id="loginEmail" type="email" autocomplete="email" required placeholder="nombre@organizacion.com">
       </label>
-      <button class="btn primary wide" type="submit">Enviar enlace de acceso</button>
+      <label class="field">Contraseña
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn primary wide" type="submit">Ingresar</button>
       <div id="loginMessage" class="login-message" aria-live="polite"></div>
     </form>
   </section>
@@ -34,6 +37,7 @@
         <div class="header-controls">
           <label class="profile">Período <input id="periodFilter" type="month" min="2025-01"></label>
           <span id="signedUser" class="signed-user"></span>
+          <button id="myPassword" class="btn">Contraseña</button>
           <button id="logout" class="btn">Salir</button>
         </div>
       </header>

@@ -4,7 +4,7 @@ Aplicación web transitoria para mantener y validar la distribución del persona
 
 ## Qué resuelve
 
-- Login sin contraseña mediante enlace enviado por correo.
+- Ingreso con correo y contraseña, sin envío de correos.
 - Perfiles de RRHH, responsable y administrador de costos.
 - Importación inicial desde un Excel con hojas `Nomina` y `Responsables`.
 - Altas, bajas y cambios de responsable con fecha.
@@ -20,7 +20,7 @@ El navegador no guarda la nómina en `localStorage`. La información queda centr
 ## Arquitectura
 
 - GitHub Pages: interfaz web estática.
-- Supabase Auth: ingreso por correo.
+- Supabase Auth: ingreso con correo y contraseña.
 - Supabase PostgreSQL: nómina, centros, asignaciones, validaciones e historial.
 - Supabase Row Level Security: cada responsable sólo recibe los registros autorizados.
 
@@ -60,7 +60,11 @@ La aplicación quedará disponible en:
 
 ### 4. Primer ingreso
 
-Ingresar con el mismo correo configurado como administrador en `setup.sql`. Supabase enviará un enlace de acceso. Desde **Accesos** se crean luego:
+En Supabase, ir a **Authentication > Users > Add user > Create new user**, cargar el mismo correo configurado como administrador en `setup.sql`, una contraseña y marcar **Auto Confirm User**. Con ese correo y contraseña se ingresa a la aplicación, que pide elegir una contraseña propia.
+
+En **Authentication > Sign In / Providers** desactivar **Allow new users to sign up**: las cuentas sólo se crean desde la aplicación.
+
+Desde **Accesos** se crean luego, cada uno con su contraseña inicial:
 
 - usuarios de RRHH;
 - responsables con su correo;
@@ -77,9 +81,13 @@ Ingresar con el mismo correo configurado como administrador en `setup.sql`. Supa
 
 La plantilla incluida contiene personas ficticias para probar. El administrador puede usar **Vaciar datos de prueba** y luego importar los datos reales. Esta acción no borra los centros ni los accesos de RRHH y administración.
 
-## Correo de acceso
+## Contraseñas
 
-El servicio de correo predeterminado de Supabase sirve para una prueba limitada. Antes de habilitar a todos los responsables debe configurarse un SMTP propio en **Authentication > SMTP Settings**. Puede utilizarse el servicio institucional o un proveedor compatible.
+- Administradores y RRHH asignan la contraseña inicial desde **Accesos** (botón **Asignar** o **Restablecer**). RRHH no puede modificar administradores.
+- La contraseña inicial se comunica a la persona por un medio privado. Al ingresar, la aplicación le pide reemplazarla por una propia.
+- Si alguien la olvida, se le asigna una nueva desde **Accesos**; su sesión abierta se cierra.
+- Cada usuario puede cambiar la suya con el botón **Contraseña** del encabezado.
+- Los responsables importados desde el Excel quedan con contraseña **Pendiente** hasta que se les asigne una.
 
 ## Seguridad y alcance
 
