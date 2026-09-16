@@ -177,8 +177,10 @@ drop policy if exists app_user_read on public.app_users;
 create policy app_user_read on public.app_users for select to authenticated
 using (lower(email)=public.current_email() or public.is_hr_or_admin());
 drop policy if exists app_user_manage on public.app_users;
+-- RRHH puede gestionar usuarios, pero no crear, modificar ni desactivar administradores.
 create policy app_user_manage on public.app_users for all to authenticated
-using (public.is_hr_or_admin()) with check (public.is_hr_or_admin());
+using (public.current_role()='administrador' or (public.current_role()='rrhh' and role<>'administrador'))
+with check (public.current_role()='administrador' or (public.current_role()='rrhh' and role<>'administrador'));
 
 drop policy if exists center_read on public.centers;
 create policy center_read on public.centers for select to authenticated using (public.is_active_user());
