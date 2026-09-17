@@ -369,12 +369,18 @@ end $$;
 revoke all on function public.clear_operational_data() from public;
 grant execute on function public.clear_operational_data() to authenticated;
 
+-- Un cambio en una persona reinicia sus confirmaciones (de todos los meses, para que no se arrastren) y las validaciones abiertas.
 create or replace function public.invalidate_people_control()
 returns trigger language plpgsql security definer set search_path=public
 as $$
 declare v_month date := date_trunc('month',current_date)::date;
 begin
-  delete from public.shared_confirmations where period>=v_month;
+  if tg_op='UPDATE' then
+    if (old.start_date,old.end_date,old.responsible_id) is not distinct from (new.start_date,new.end_date,new.responsible_id) then
+      return new;
+    end if;
+    delete from public.shared_confirmations where person_id=new.id;
+  end if;
   delete from public.monthly_validations where period>=v_month;
   delete from public.hr_validations where period>=v_month;
   return new;
@@ -382,7 +388,7 @@ end $$;
 
 drop trigger if exists people_invalidate_control on public.people;
 create trigger people_invalidate_control after insert or update of start_date,end_date,responsible_id on public.people
-for each statement execute function public.invalidate_people_control();
+for each row execute function public.invalidate_people_control();
 
 create or replace function public.invalidate_center_control()
 returns trigger language plpgsql security definer set search_path=public
