@@ -357,11 +357,11 @@ begin
   if public.current_role()<>'administrador' then raise exception 'Sólo el administrador puede vaciar la prueba'; end if;
   update public.centers set responsible_id=null where responsible_id is not null;
   delete from public.app_users where role='responsable';
-  delete from public.people;
-  delete from public.responsibles;
-  delete from public.shared_confirmations;
-  delete from public.monthly_validations;
-  delete from public.hr_validations;
+  delete from public.people where true;
+  delete from public.responsibles where true;
+  delete from public.shared_confirmations where true;
+  delete from public.monthly_validations where true;
+  delete from public.hr_validations where true;
   insert into public.audit_events(actor_email,event_type,description)
   values(public.current_email(),'clear_test','Se vaciaron los datos operativos para realizar la carga real');
 end $$;
@@ -390,13 +390,15 @@ drop trigger if exists people_invalidate_control on public.people;
 create trigger people_invalidate_control after insert or update of start_date,end_date,responsible_id on public.people
 for each row execute function public.invalidate_people_control();
 
+-- Cambiar el responsable de un centro reinicia las confirmaciones de ese centro y las validaciones abiertas.
+-- (Supabase no permite DELETE sin WHERE: cada borrado lleva su condición.)
 create or replace function public.invalidate_center_control()
 returns trigger language plpgsql security definer set search_path=public
 as $$
 begin
   if old.responsible_id is distinct from new.responsible_id then
-    delete from public.shared_confirmations;
-    delete from public.monthly_validations;
+    delete from public.shared_confirmations where center_id=new.id;
+    delete from public.monthly_validations where period>=date_trunc('month',current_date)::date;
   end if;
   return new;
 end $$;
