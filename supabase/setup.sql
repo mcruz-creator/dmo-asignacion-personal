@@ -238,6 +238,7 @@ declare
   v_version uuid;
   v_total numeric;
   v_owner uuid;
+  v_keep jsonb;
 begin
   select responsible_id into v_owner from public.people where id=p_person_id;
   if v_owner is null then raise exception 'Persona inexistente'; end if;
@@ -252,12 +253,21 @@ begin
   update public.assignment_versions
     set valid_to=p_valid_from-1
     where person_id=p_person_id and valid_from<p_valid_from and (valid_to is null or valid_to>=p_valid_from);
+  -- Conserva las confirmaciones de la versión que se reemplaza para reubicar las de porcentajes sin cambios.
+  select coalesce(jsonb_agg(jsonb_build_object('period',sc.period,'center_id',sc.center_id,'pct',l.pct,'confirmed_by',sc.confirmed_by,'confirmed_at',sc.confirmed_at)),'[]'::jsonb) into v_keep
+    from public.shared_confirmations sc
+    join public.assignment_versions v on v.id=sc.version_id and v.person_id=p_person_id and v.valid_from=p_valid_from
+    join public.assignment_lines l on l.version_id=v.id and l.center_id=sc.center_id;
   delete from public.assignment_versions where person_id=p_person_id and valid_from=p_valid_from;
   insert into public.assignment_versions(person_id,valid_from,created_by)
     values(p_person_id,p_valid_from,public.current_email()) returning id into v_version;
   insert into public.assignment_lines(version_id,center_id,pct)
     select v_version,x->>'center_id',(x->>'pct')::numeric from jsonb_array_elements(p_lines) x;
-  delete from public.shared_confirmations where person_id=p_person_id and period>=date_trunc('month',p_valid_from)::date;
+  insert into public.shared_confirmations(period,person_id,center_id,version_id,confirmed_by,confirmed_at)
+    select (k->>'period')::date,p_person_id,k->>'center_id',v_version,k->>'confirmed_by',(k->>'confirmed_at')::timestamptz
+    from jsonb_array_elements(v_keep) k
+    join public.assignment_lines nl on nl.version_id=v_version and nl.center_id=k->>'center_id' and nl.pct=(k->>'pct')::numeric
+    on conflict do nothing;
   delete from public.monthly_validations where period>=date_trunc('month',p_valid_from)::date;
   delete from public.hr_validations where period>=date_trunc('month',p_valid_from)::date;
   insert into public.audit_events(actor_email,event_type,description)
@@ -268,13 +278,36 @@ end $$;
 revoke all on function public.save_assignment(text,date,jsonb) from public;
 grant execute on function public.save_assignment(text,date,jsonb) to authenticated;
 
+-- Una dedicación compartida sigue confirmada en los meses siguientes mientras su porcentaje no cambie.
+create or replace function public.shared_confirmed(p_person_id text,p_center_id text,p_version_id uuid,p_month date)
+returns boolean language sql stable security definer set search_path=public
+as $$
+  select exists(
+    select 1
+    from public.assignment_versions cur
+    join public.assignment_lines curl on curl.version_id=cur.id and curl.center_id=p_center_id
+    join public.shared_confirmations sc on sc.person_id=p_person_id and sc.center_id=p_center_id and sc.period<=p_month
+    join public.assignment_versions cv on cv.id=sc.version_id and cv.person_id=p_person_id and cv.valid_from<=cur.valid_from
+    join public.assignment_lines cl on cl.version_id=cv.id and cl.center_id=p_center_id and cl.pct=curl.pct
+    where cur.id=p_version_id
+      and not exists(
+        select 1 from public.assignment_versions iv
+        left join public.assignment_lines il on il.version_id=iv.id and il.center_id=p_center_id
+        where iv.person_id=p_person_id and iv.valid_from>cv.valid_from and iv.valid_from<=cur.valid_from
+          and il.pct is distinct from curl.pct
+      )
+  )
+$$;
+
+revoke all on function public.shared_confirmed(text,text,uuid,date) from public;
+
 create or replace function public.validate_responsible_month(p_period date)
 returns void language plpgsql security definer set search_path=public
 as $$
 declare
   v_rid uuid := public.current_responsible_id();
   v_month date := date_trunc('month',p_period)::date;
-  v_end date := (date_trunc('month',p_period)+interval '1 month-1 day')::date;
+  v_end date := (date_trunc('month',p_period)+interval '1 month -1 day')::date;
 begin
   if public.current_role()<>'responsable' or v_rid is null then
     raise exception 'Sólo un responsable habilitado puede validar su mes';
@@ -302,11 +335,10 @@ begin
     ) v on true
     join public.assignment_lines l on l.version_id=v.id
     join public.centers c on c.id=l.center_id
-    left join public.shared_confirmations sc on sc.period=v_month and sc.person_id=p.id and sc.center_id=c.id and sc.version_id=v.id
     where p.start_date<=v_end and (p.end_date is null or p.end_date>=v_month)
       and ((p.responsible_id=v_rid and c.responsible_id is not null and c.responsible_id<>v_rid)
         or (p.responsible_id<>v_rid and c.responsible_id=v_rid))
-      and sc.person_id is null
+      and not public.shared_confirmed(p.id,c.id,v.id,v_month)
   ) then raise exception 'Hay dedicaciones compartidas sin confirmar'; end if;
   insert into public.monthly_validations(period,responsible_id,validated_by)
   values(v_month,v_rid,public.current_email())
