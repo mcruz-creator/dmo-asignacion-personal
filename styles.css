@@ -228,7 +228,6 @@ dialog::backdrop{background:#0b1f21a8;-webkit-backdrop-filter:blur(3px);backdrop
 .login-intro h1{animation-delay:.14s}
 .login-lede{animation-delay:.22s}
 .login-demo{animation-delay:.3s}
-.login-steps{animation-delay:.4s}
 .login-eyebrow{margin:0;font-size:11px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:var(--accent)}
 .login-intro h1{font-family:var(--serif);font-weight:600;font-size:clamp(33px,3.6vw,50px);line-height:1.04;letter-spacing:-.03em;color:#fff;margin:0;text-wrap:balance;font-variation-settings:"opsz" 144,"SOFT" 60}
 .login-intro h1 em{font-style:italic;color:#8fe6f0}
@@ -246,11 +245,6 @@ dialog::backdrop{background:#0b1f21a8;-webkit-backdrop-filter:blur(3px);backdrop
 .ld-row em{font-style:normal;font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:#7fe0c6;background:#1f7a6033;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:1px;animation:confirm 11s 1.2s cubic-bezier(.2,.8,.2,1) infinite both}
 .ld-row b,.ld-total b{font-family:var(--mono);font-size:14px;font-weight:500;color:#fff}
 .ld-total{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:11px;border-top:1px dashed #ffffff26;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:650;color:#8ba39d}
-.login-steps{display:flex;flex-wrap:wrap;gap:10px;margin:2px 0 0;padding:0;list-style:none}
-.login-steps li{animation:rise .5s cubic-bezier(.2,.8,.2,1) both;display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:#c3d5cf;background:#ffffff0d;border:1px solid #ffffff1a;border-radius:999px;padding:6px 14px 6px 6px}
-.login-steps li:nth-child(2){animation-delay:.12s}
-.login-steps li:nth-child(3){animation-delay:.24s}
-.login-steps b{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#04333b;font-family:var(--serif);font-size:13px;font-weight:600}
 
 .login-card{position:relative;z-index:1;width:min(460px,100%);background:var(--surface);border-radius:20px;padding:40px 38px 30px;border:1px solid #ffffff26;box-shadow:0 50px 110px -40px #000;animation:rise .6s .1s cubic-bezier(.2,.8,.2,1) both}
 .login-brand{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--brand)}
@@ -262,13 +256,35 @@ dialog::backdrop{background:#0b1f21a8;-webkit-backdrop-filter:blur(3px);backdrop
 .login-message.error{color:var(--danger)}
 .login-foot{margin:6px 0 0;padding-top:16px;border-top:1px solid var(--line-2);font-size:12.5px;color:var(--muted)}
 
+/* Pantallas de poco alto: la portada entra completa sin scroll */
+@media(min-width:941px) and (max-height:820px){
+  .login-page{padding:22px 24px}
+  .login-intro{gap:clamp(11px,2vh,22px)}
+  .login-logo{width:clamp(132px,17vh,181px);height:auto}
+  .login-intro h1{font-size:clamp(27px,min(3.6vw,5.2vh),50px)}
+  .login-lede{font-size:14.5px}
+  .login-demo{padding:14px 18px 10px}
+  .login-demo figcaption{margin-bottom:11px}
+  .ld-bar{height:11px;margin-bottom:10px}
+  .ld-row{padding:4px 0;font-size:14px}
+  .login-card{padding:clamp(24px,4.5vh,40px) clamp(26px,3vw,38px) clamp(20px,3.5vh,30px)}
+  .login-card h1{font-size:clamp(28px,5vh,38px);margin:12px 0 8px}
+  .login-card>p{margin-bottom:clamp(14px,3vh,26px);font-size:14px}
+  .login-message{min-height:20px;margin-top:10px}
+  .login-foot{padding-top:12px}
+}
+
 @media(max-width:940px){
-  .login-shell{grid-template-columns:1fr;gap:30px;width:min(460px,100%)}
-  .login-intro{gap:16px}
-  .login-intro h1{font-size:30px}
+  .login-page{padding:20px}
+  .login-shell{grid-template-columns:1fr;gap:22px;width:min(460px,100%)}
+  .login-intro{gap:14px}
+  .login-intro h1{font-size:27px}
   .login-lede,.login-demo{display:none}
-  .login-logo{width:145px;height:74px}
-  .login-steps li{font-size:12.5px;padding:5px 12px 5px 5px}
+  .login-logo{width:126px;height:65px}
+  .login-card{padding:26px 24px 20px}
+  .login-card h1{font-size:30px;margin:12px 0 8px}
+  .login-card>p{margin-bottom:18px;font-size:14px}
+  .login-foot{padding-top:12px}
 }
 
 /* Motion: one calm staggered entrance per screen */
