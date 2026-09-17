@@ -81,6 +81,10 @@ Desde **Accesos** se crean luego, cada uno con su contraseña inicial:
 
 Los centros también se mantienen desde la pantalla **Centros**: **＋ Centro** da de alta uno, **Dar de baja** lo saca de las nuevas asignaciones (los meses anteriores lo conservan) y **Reactivar** lo vuelve a habilitar. Si una persona tenía asignado un centro dado de baja, aparece marcada para reasignar. Volver a importar el catálogo reactiva los centros incluidos en el archivo.
 
+Para el seguimiento del mes, **Cierre mensual** muestra primero a los responsables con pendientes; **Ver qué falta** detalla qué personas no suman 100%, qué porcentajes tiene que confirmar y su correo. En **Asignaciones** se puede filtrar por responsable y ver **Solo pendientes**.
+
+Al publicar cambios en `app.js` o `styles.css`, actualizar el `?v=` de `index.html` para que los navegadores no usen una copia vieja.
+
 La plantilla incluida contiene personas ficticias para probar. El administrador puede usar **Vaciar datos de prueba** y luego importar los datos reales. Esta acción no borra los centros ni los accesos de RRHH y administración.
 
 ## Contraseñas
