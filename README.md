@@ -79,6 +79,8 @@ Desde **Accesos** se crean luego, cada uno con su contraseña inicial:
 5. Importar la nómina una sola vez.
 6. Después de esa carga, RRHH mantiene altas, bajas y cambios individualmente.
 
+Los centros también se mantienen desde la pantalla **Centros**: **＋ Centro** da de alta uno, **Dar de baja** lo saca de las nuevas asignaciones (los meses anteriores lo conservan) y **Reactivar** lo vuelve a habilitar. Si una persona tenía asignado un centro dado de baja, aparece marcada para reasignar. Volver a importar el catálogo reactiva los centros incluidos en el archivo.
+
 La plantilla incluida contiene personas ficticias para probar. El administrador puede usar **Vaciar datos de prueba** y luego importar los datos reales. Esta acción no borra los centros ni los accesos de RRHH y administración.
 
 ## Contraseñas
