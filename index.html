@@ -10,23 +10,43 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,400..600,0..100&family=Hanken+Grotesk:wght@400..700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20260917i">
+  <link rel="stylesheet" href="styles.css?v=20260917j">
 </head>
 <body>
   <section id="login" class="login-page">
-    <form id="loginForm" class="login-card">
-      <div class="login-brand">DMO</div>
-      <h1>Asignación de personal</h1>
-      <p>Ingresá con tu correo y contraseña. Si todavía no tenés contraseña, pedísela a RRHH o al administrador.</p>
-      <label class="field">Correo electrónico
-        <input id="loginEmail" type="email" autocomplete="email" required placeholder="nombre@organizacion.com">
-      </label>
-      <label class="field">Contraseña
-        <input id="loginPassword" type="password" autocomplete="current-password" required>
-      </label>
-      <button class="btn primary wide" type="submit">Ingresar</button>
-      <div id="loginMessage" class="login-message" aria-live="polite"></div>
-    </form>
+    <div class="login-shell">
+      <div class="login-intro">
+        <p class="login-eyebrow">DMO · Asignación de personal</p>
+        <h1>Cada persona, repartida entre sus centros <em>al 100%</em>, todos los meses.</h1>
+        <p class="login-lede">Cada responsable reparte el tiempo de su gente entre centros de costos y de beneficio, el dueño de cada centro confirma lo que recibe y RRHH cierra el mes. El resultado alimenta el modelo de costos.</p>
+        <figure class="login-demo" aria-label="Ejemplo: una persona repartida entre dos centros">
+          <figcaption><b>Laura Pérez</b><span>Ejemplo &middot; Septiembre 2026</span></figcaption>
+          <div class="ld-bar"><i class="a" style="width:70%"></i><i class="b" style="width:30%"></i></div>
+          <div class="ld-row"><s class="a"></s><span>Laboratorio</span><b>70%</b></div>
+          <div class="ld-row"><s class="b"></s><span>Imágenes <em>confirmado</em></span><b>30%</b></div>
+          <div class="ld-total"><span>Total</span><b>100%</b></div>
+        </figure>
+        <ol class="login-steps">
+          <li><b>1</b>Repartir</li>
+          <li><b>2</b>Confirmar</li>
+          <li><b>3</b>Validar y cerrar</li>
+        </ol>
+      </div>
+      <form id="loginForm" class="login-card">
+        <div class="login-brand">Acceso</div>
+        <h1>Ingresar</h1>
+        <p>Ingresá con tu correo y contraseña. Si todavía no tenés contraseña, pedísela a RRHH o al administrador.</p>
+        <label class="field">Correo electrónico
+          <input id="loginEmail" type="email" autocomplete="email" required placeholder="nombre@organizacion.com">
+        </label>
+        <label class="field">Contraseña
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn primary wide" type="submit">Ingresar</button>
+        <div id="loginMessage" class="login-message" aria-live="polite"></div>
+        <p class="login-foot">Herramienta transitoria, hasta la implementación de Workia.</p>
+      </form>
+    </div>
   </section>
   <div id="secureApp" class="layout" hidden>
     <aside>
@@ -52,6 +72,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="jszip.min.js"></script>
-  <script src="app.js?v=20260917i"></script>
+  <script src="app.js?v=20260917j"></script>
 </body>
 </html>
