@@ -58,7 +58,8 @@ async function audit(type,description){const{error}=await sb.from('audit_events'
 async function boot(){
   if(!sb){showLoginError('Falta la configuración de Supabase.');return}
   $('#loginForm').onsubmit=sendLogin;$('#logout').onclick=()=>sb.auth.signOut();$('#myPassword').onclick=openMyPassword;$('#periodFilter').onchange=e=>{period=e.target.value;render()};
-  sb.auth.onAuthStateChange((_event,newSession)=>setTimeout(()=>acceptSession(newSession),0));
+  // Supabase avisa solo al volver a la pestaña y al renovar el token: si sigue siendo la misma persona, sólo se actualiza la sesión, sin recargar la pantalla.
+  sb.auth.onAuthStateChange((_event,newSession)=>{if(newSession&&me&&session&&newSession.user.id===session.user.id){session=newSession;return}setTimeout(()=>acceptSession(newSession),0)});
   const{data}=await sb.auth.getSession();await acceptSession(data.session);
 }
 async function sendLogin(e){e.preventDefault();const email=$('#loginEmail').value.trim().toLowerCase(),password=$('#loginPassword').value,box=$('#loginMessage');box.className='login-message';box.textContent='Ingresando…';const{error}=await sb.auth.signInWithPassword({email,password});if(error){box.classList.add('error');box.textContent=/invalid login credentials/i.test(error.message)?'Correo o contraseña incorrectos.':error.message;return}$('#loginPassword').value='';box.textContent=''}
