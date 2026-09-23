@@ -351,3 +351,6 @@ dialog::backdrop{background:#0b1f21a8;-webkit-backdrop-filter:blur(3px);backdrop
   .login-card{padding:32px 24px 26px}
   .login-card h1{font-size:28px}
 }
+th.pick,td.pick{width:38px;text-align:center;padding-left:14px;padding-right:0}
+.pick input{width:17px;height:17px;accent-color:var(--brand);cursor:pointer;margin:0}
+.panelhead.filters{justify-content:flex-start;border-top:1px solid var(--line);background:var(--surface-2)}
