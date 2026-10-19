@@ -270,6 +270,39 @@ create policy audit_read on public.audit_events for select to authenticated usin
 drop policy if exists audit_insert on public.audit_events;
 create policy audit_insert on public.audit_events for insert to authenticated with check (actor_email=public.current_email() and public.is_active_user());
 
+-- Pedido de transferencia de una persona a otro responsable. Lo origina el responsable principal
+-- y lo resuelve RRHH: la persona sigue a su cargo hasta que se apruebe. Un solo pedido pendiente
+-- por persona. La tabla se lee con RLS y se escribe unicamente por request_transfer,
+-- cancel_transfer y resolve_transfer.
+create table if not exists public.transfer_requests (
+  id uuid primary key default gen_random_uuid(),
+  person_id text not null references public.people(id) on delete cascade,
+  from_responsible_id uuid not null references public.responsibles(id),
+  suggested_responsible_id uuid not null references public.responsibles(id),
+  reason text not null,
+  status text not null default 'pendiente' check (status in ('pendiente','aprobada','rechazada','cancelada')),
+  requested_by text not null,
+  requested_at timestamptz not null default now(),
+  resolved_by text,
+  resolved_at timestamptz,
+  resolution_note text,
+  final_responsible_id uuid references public.responsibles(id),
+  effective_from date
+);
+
+create unique index if not exists transfer_requests_open
+  on public.transfer_requests(person_id) where status='pendiente';
+create index if not exists transfer_requests_from
+  on public.transfer_requests(from_responsible_id);
+
+alter table public.transfer_requests enable row level security;
+
+drop policy if exists transfer_request_read on public.transfer_requests;
+create policy transfer_request_read on public.transfer_requests for select to authenticated
+  using (public.is_hr_or_admin() or from_responsible_id=public.current_responsible_id());
+
+grant select on public.transfer_requests to authenticated;
+
 -- Guarda la asignación desde un mes. Rige hasta la próxima versión o hasta que la persona cambie de
 -- responsable. No hace nada si no hay cambios; si los hay, sólo reinicia la validación de los
 -- responsables afectados en los meses alcanzados. Rechaza cambios que alcancen un mes cerrado.
