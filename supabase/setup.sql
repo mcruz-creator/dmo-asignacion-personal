@@ -373,6 +373,77 @@ end $$;
 revoke all on function public.cancel_transfer(uuid) from public, anon;
 grant execute on function public.cancel_transfer(uuid) to authenticated;
 
+-- RRHH resuelve el pedido. Al aprobar elige a quien pasa (puede no ser el sugerido) y desde que
+-- mes, y la distribucion de centros de la persona se borra desde ese mes: el responsable nuevo la
+-- tiene que rearmar antes de validar. Al rechazar, el motivo es obligatorio y lo ve quien pidio.
+create or replace function public.resolve_transfer(p_id uuid, p_approve boolean, p_final_responsible uuid, p_effective_from date, p_note text)
+returns void language plpgsql security definer set search_path=public
+as $$
+declare
+  v_req public.transfer_requests;
+  v_person public.people;
+  v_final uuid;
+  v_from date;
+  v_note text := nullif(trim(coalesce(p_note,'')),'');
+begin
+  if not public.is_hr_or_admin() then
+    raise exception 'Sólo RRHH o el administrador pueden resolver una transferencia.';
+  end if;
+  select * into v_req from public.transfer_requests where id=p_id for update;
+  if not found then raise exception 'Ese pedido no existe.'; end if;
+  if v_req.status<>'pendiente' then raise exception 'Ese pedido ya fue resuelto.'; end if;
+  select * into v_person from public.people where id=v_req.person_id for update;
+  if not found then raise exception 'Persona inexistente'; end if;
+
+  if not p_approve then
+    if v_note is null then
+      raise exception 'Escribí el motivo del rechazo: el responsable lo va a ver en la app.';
+    end if;
+    update public.transfer_requests
+      set status='rechazada', resolved_by=public.current_email(), resolved_at=now(), resolution_note=v_note
+      where id=p_id;
+    insert into public.audit_events(actor_email,event_type,description)
+      values(public.current_email(),'transfer_reject','Transferencia rechazada: '||v_person.name||' sigue a cargo de '||(select name from public.responsibles where id=v_req.from_responsible_id));
+    return;
+  end if;
+
+  v_final := coalesce(p_final_responsible, v_req.suggested_responsible_id);
+  if p_effective_from is null then
+    raise exception 'Indicá desde qué mes toma efecto la transferencia.';
+  end if;
+  v_from := greatest(date_trunc('month',p_effective_from)::date, v_person.start_date);
+  if not exists(select 1 from public.responsibles where id=v_final and active) then
+    raise exception 'El responsable elegido no existe o no está activo. Elegí otro.';
+  end if;
+  if v_person.end_date is not null and v_from>v_person.end_date then
+    raise exception 'La persona ya estaba de baja en %.', to_char(v_from,'MM/YYYY');
+  end if;
+  perform public.assert_open(v_from, null);
+
+  -- La distribución de centros se corta en el mes efectivo y lo que viene después se borra:
+  -- las líneas y las confirmaciones cuelgan de la versión con on delete cascade, así que el
+  -- responsable nuevo arranca sin reparto y la app le muestra "Falta completar".
+  update public.assignment_versions set valid_to=v_from-1
+    where person_id=v_req.person_id and valid_from<v_from and (valid_to is null or valid_to>=v_from);
+  delete from public.assignment_versions
+    where person_id=v_req.person_id and valid_from>=v_from;
+
+  -- change_responsible controla la persona y el responsable, actualiza el historial y, por su
+  -- trigger, reinicia la validación mensual del responsable viejo y del nuevo desde el mes efectivo.
+  perform public.change_responsible(v_req.person_id, v_from, v_final,
+    'Transferencia aprobada por RRHH (pedida por '||v_req.requested_by||')');
+
+  update public.transfer_requests
+    set status='aprobada', resolved_by=public.current_email(), resolved_at=now(),
+        resolution_note=v_note, final_responsible_id=v_final, effective_from=v_from
+    where id=p_id;
+  insert into public.audit_events(actor_email,event_type,description)
+    values(public.current_email(),'transfer_approve','Transferencia aprobada: '||v_person.name||' pasa a '||(select name from public.responsibles where id=v_final)||' desde '||to_char(v_from,'MM/YYYY')||'; se borró su distribución de centros');
+end $$;
+
+revoke all on function public.resolve_transfer(uuid,boolean,uuid,date,text) from public, anon;
+grant execute on function public.resolve_transfer(uuid,boolean,uuid,date,text) to authenticated;
+
 -- Guarda la asignación desde un mes. Rige hasta la próxima versión o hasta que la persona cambie de
 -- responsable. No hace nada si no hay cambios; si los hay, sólo reinicia la validación de los
 -- responsables afectados en los meses alcanzados. Rechaza cambios que alcancen un mes cerrado.
