@@ -41,6 +41,7 @@ aside{position:sticky;top:0;height:100vh;overflow:auto;color:#fff;padding:30px 1
 .navbtn.active{background:linear-gradient(90deg,#ffffff17,#ffffff04);color:#fff}
 .navbtn.active::before{content:"";position:absolute;left:-16px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
 .navbtn.active i{background:var(--accent);border-color:var(--accent);color:var(--nav)}
+.navbtn .count{margin-left:auto;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--accent);color:var(--nav);font-size:11.5px;font-weight:700;text-align:center}
 .period{margin-top:auto;padding:16px 16px 15px;border:1px solid #ffffff17;border-radius:12px;background:#ffffff08}
 .period b,.period span{display:block}
 .period b{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:650;margin-bottom:6px}
@@ -162,6 +163,7 @@ td select{font-size:14px}
 .listrow:last-child{border-bottom:0}
 .listrow b{font-weight:650}
 .listrow p{font-size:13px;color:var(--muted);margin:3px 0}
+.listrow p.reason{color:var(--ink);font-style:italic}
 .statusline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .summary{display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid #cfe1d6;background:linear-gradient(135deg,#e5f0ea,#f4f6ee);padding:24px 26px;border-radius:12px}
 .summary h2{font-size:26px;font-weight:500}
