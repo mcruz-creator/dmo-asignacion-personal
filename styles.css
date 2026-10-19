@@ -193,6 +193,12 @@ td select{font-size:14px}
 .showall{display:flex;gap:10px;align-items:flex-start;margin:2px 0 14px;font-size:14px;color:var(--ink-2);cursor:pointer}
 .showall input{accent-color:var(--brand);width:16px;height:16px;margin:2px 0 0;padding:0}
 .showall small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.checklist{display:grid;gap:2px;border:1px solid var(--line);border-radius:var(--radius);padding:6px;background:var(--surface-2);max-height:290px;overflow:auto}
+.checkrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer}
+.checkrow:hover{background:var(--brand-soft)}
+.checkrow input{width:16px;height:16px;flex:none;accent-color:var(--brand);margin:0}
+.checkrow span{font-size:14px}
+.checkrow:has(input:checked) span{font-weight:600}
 .total{padding:12px 16px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;margin-top:16px}
 .total span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:650}
 .total b{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
