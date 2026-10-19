@@ -303,6 +303,76 @@ create policy transfer_request_read on public.transfer_requests for select to au
 
 grant select on public.transfer_requests to authenticated;
 
+-- El responsable principal pide que una persona deje de estar a su cargo y sugiere, en forma
+-- obligatoria, quien deberia reemplazarlo. No transfiere nada: queda pendiente hasta que RRHH
+-- lo resuelva, y mientras tanto la persona sigue a su cargo y la valida igual.
+create or replace function public.request_transfer(p_person_id text, p_suggested uuid, p_reason text)
+returns uuid language plpgsql security definer set search_path=public
+as $$
+declare
+  v_person public.people;
+  v_reason text := nullif(trim(coalesce(p_reason,'')),'');
+  v_from uuid;
+  v_id uuid;
+begin
+  select * into v_person from public.people where id=p_person_id;
+  if not found then raise exception 'Persona inexistente'; end if;
+  v_from := v_person.responsible_id;
+  if not public.is_hr_or_admin() and v_from is distinct from public.current_responsible_id() then
+    raise exception 'Sólo el responsable principal de esa persona puede pedir la transferencia.';
+  end if;
+  if v_from is null then
+    raise exception 'Esa persona no tiene responsable principal: pedíselo a RRHH.';
+  end if;
+  if v_person.end_date is not null and v_person.end_date < date_trunc('month',now())::date then
+    raise exception 'Esa persona ya está dada de baja.';
+  end if;
+  if v_reason is null then
+    raise exception 'Escribí el motivo: es lo que RRHH va a usar para hablar con el responsable nuevo.';
+  end if;
+  if not exists(select 1 from public.responsibles where id=p_suggested and active) then
+    raise exception 'El responsable sugerido no existe o no está activo.';
+  end if;
+  if p_suggested=v_from then
+    raise exception 'Esa persona ya está a cargo de ese responsable.';
+  end if;
+  if exists(select 1 from public.transfer_requests where person_id=p_person_id and status='pendiente') then
+    raise exception 'Ya hay un pedido de transferencia pendiente para esa persona.';
+  end if;
+  insert into public.transfer_requests(person_id,from_responsible_id,suggested_responsible_id,reason,requested_by)
+    values(p_person_id,v_from,p_suggested,v_reason,public.current_email())
+    returning id into v_id;
+  insert into public.audit_events(actor_email,event_type,description)
+    values(public.current_email(),'transfer_request','Pedido de transferencia de '||v_person.name||' a '||(select name from public.responsibles where id=p_suggested));
+  return v_id;
+end $$;
+
+revoke all on function public.request_transfer(text,uuid,text) from public, anon;
+grant execute on function public.request_transfer(text,uuid,text) to authenticated;
+
+-- Quien origino el pedido lo puede cancelar mientras RRHH no lo haya resuelto.
+create or replace function public.cancel_transfer(p_id uuid)
+returns void language plpgsql security definer set search_path=public
+as $$
+declare v_req public.transfer_requests; v_name text;
+begin
+  select * into v_req from public.transfer_requests where id=p_id for update;
+  if not found then raise exception 'Ese pedido no existe.'; end if;
+  if not public.is_hr_or_admin() and v_req.from_responsible_id is distinct from public.current_responsible_id() then
+    raise exception 'Sólo quien pidió la transferencia puede cancelarla.';
+  end if;
+  if v_req.status<>'pendiente' then raise exception 'Ese pedido ya fue resuelto.'; end if;
+  update public.transfer_requests
+    set status='cancelada', resolved_by=public.current_email(), resolved_at=now()
+    where id=p_id;
+  select name into v_name from public.people where id=v_req.person_id;
+  insert into public.audit_events(actor_email,event_type,description)
+    values(public.current_email(),'transfer_cancel','Pedido de transferencia cancelado: '||coalesce(v_name,v_req.person_id));
+end $$;
+
+revoke all on function public.cancel_transfer(uuid) from public, anon;
+grant execute on function public.cancel_transfer(uuid) to authenticated;
+
 -- Guarda la asignación desde un mes. Rige hasta la próxima versión o hasta que la persona cambie de
 -- responsable. No hace nada si no hay cambios; si los hay, sólo reinicia la validación de los
 -- responsables afectados en los meses alcanzados. Rechaza cambios que alcancen un mes cerrado.
